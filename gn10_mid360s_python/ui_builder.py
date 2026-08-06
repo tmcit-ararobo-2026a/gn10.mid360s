@@ -22,7 +22,7 @@ from isaacsim.core.api.world import World
 from isaacsim.core.prims import SingleXFormPrim
 from isaacsim.core.utils.stage import create_new_stage, get_current_stage
 from isaacsim.examples.extension.core_connectors import LoadButton, ResetButton
-from isaacsim.gui.components.element_wrappers import CollapsableFrame, StateButton
+from isaacsim.gui.components.element_wrappers import CollapsableFrame
 from isaacsim.gui.components.ui_utils import get_style
 from omni.usd import StageEventType
 from pxr import Sdf, UsdLux
@@ -61,13 +61,7 @@ class UIBuilder:
         Args:
             event: Event type.
         """
-        if event.event_name == omni.timeline.GLOBAL_EVENT_STOP:
-            # When the user hits the stop button through the UI, they will inevitably discover edge cases where things break
-            # For complete robustness, the user should resolve those edge cases here
-            # In general, for extensions based off this template, there is no value to having the user click the play/stop
-            # button instead of using the Load/Reset/Run buttons provided.
-            self._scenario_state_btn.reset()
-            self._scenario_state_btn.enabled = False
+        return
 
     def on_physics_step(self, step: float) -> None:
         """Callback for Physics Step.
@@ -120,36 +114,13 @@ class UIBuilder:
                 self._reset_btn.enabled = False
                 self.wrapped_ui_elements.append(self._reset_btn)
 
-        run_scenario_frame = CollapsableFrame("Run Scenario")
-
-        with run_scenario_frame:
-            with ui.VStack(style=get_style(), spacing=5, height=0):
-                self._scenario_state_btn = StateButton(
-                    "Run Scenario",
-                    "RUN",
-                    "STOP",
-                    on_a_click_fn=self._on_run_scenario_a_text,
-                    on_b_click_fn=self._on_run_scenario_b_text,
-                    physics_callback_fn=self._update_scenario,
-                )
-                self._scenario_state_btn.enabled = False
-                self.wrapped_ui_elements.append(self._scenario_state_btn)
-
     ######################################################################################
     # Functions Below This Point Support The Provided Example And Can Be Deleted/Replaced
     ######################################################################################
 
     def _on_init(self) -> None:
-        self._articulation = None
         self._cuboid = None
         self._scenario = FrankaRmpFlowExampleScript()
-
-    def _add_light_to_stage(self) -> None:
-        """A new stage does not have a light by default.  This function creates a spherical light."""
-        sphereLight = UsdLux.SphereLight.Define(get_current_stage(), Sdf.Path("/World/SphereLight"))
-        sphereLight.CreateRadiusAttr(2)
-        sphereLight.CreateIntensityAttr(100000)
-        SingleXFormPrim(str(sphereLight.GetPath())).set_world_pose([6.5, 0, 12])
 
     def _setup_scene(self) -> None:
         """This function is attached to the Load Button as the setup_scene_fn callback.
@@ -158,7 +129,6 @@ class UIBuilder:
         The user should now load their assets onto the stage and add them to the World Scene.
         """
         create_new_stage()
-        self._add_light_to_stage()
 
         loaded_objects = self._scenario.load_example_assets()
 
@@ -174,10 +144,6 @@ class UIBuilder:
         their objects are properly initialized, and that the timeline is paused on timestep 0.
         """
         self._scenario.setup()
-
-        # UI management
-        self._scenario_state_btn.reset()
-        self._scenario_state_btn.enabled = True
         self._reset_btn.enabled = True
 
     def _on_post_reset_btn(self) -> None:
@@ -190,54 +156,6 @@ class UIBuilder:
         """
         self._scenario.reset()
 
-        # UI management
-        self._scenario_state_btn.reset()
-        self._scenario_state_btn.enabled = True
-
-    def _update_scenario(self, step: float, context: object) -> None:
-        """This function is attached to the Run Scenario StateButton.
-
-        This function was passed in as the physics_callback_fn argument.
-        This means that when the a_text "RUN" is pressed, a subscription is made to call this function on every physics step.
-        When the b_text "STOP" is pressed, the physics callback is removed.
-
-        This function will repeatedly advance the script in scenario.py until it is finished.
-
-        Args:
-            step: The dt of the current physics step.
-            context: The physics context object.
-        """
-        done = self._scenario.update(step)
-        if done:
-            self._scenario_state_btn.enabled = False
-
-    def _on_run_scenario_a_text(self) -> None:
-        """This function is attached to the Run Scenario StateButton.
-
-        This function was passed in as the on_a_click_fn argument.
-        It is called when the StateButton is clicked while saying a_text "RUN".
-
-        This function simply plays the timeline, which means that physics steps will start happening.  After the world is loaded or reset,
-        the timeline is paused, which means that no physics steps will occur until the user makes it play either programmatically or
-        through the left-hand UI toolbar.
-        """
-        self._timeline.play()
-
-    def _on_run_scenario_b_text(self) -> None:
-        """This function is attached to the Run Scenario StateButton.
-
-        This function was passed in as the on_b_click_fn argument.
-        It is called when the StateButton is clicked while saying a_text "STOP".
-
-        Pausing the timeline on b_text is not strictly necessary for this example to run.
-        Clicking "STOP" will cancel the physics subscription that updates the scenario, which means that
-        the robot will stop getting new commands and the cube will stop updating without needing to
-        pause at all.  The reason that the timeline is paused here is to prevent the robot being carried
-        forward by momentum for a few frames after the physics subscription is canceled.  Pausing here makes
-        this example prettier, but if curious, the user should observe what happens when this line is removed.
-        """
-        self._timeline.pause()
-
     def _reset_extension(self) -> None:
         """This is called when the user opens a new stage from self.on_stage_event().
 
@@ -247,6 +165,4 @@ class UIBuilder:
         self._reset_ui()
 
     def _reset_ui(self) -> None:
-        self._scenario_state_btn.reset()
-        self._scenario_state_btn.enabled = False
         self._reset_btn.enabled = False

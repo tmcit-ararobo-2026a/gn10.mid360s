@@ -1,0 +1,17 @@
+#usda 1.0
+(
+    defaultPrim = "Mid360"
+    doc = "Standalone Mid-360 mounting USD. The physics raycast sensor prim itself is authored programmatically by the extension."
+)
+
+def Xform "Mid360"
+{
+    double3 xformOp:translate = (0, 0, 0)
+    uniform token[] xformOpOrder = ["xformOp:translate"]
+
+    def Xform "Sensor"
+    {
+        double3 xformOp:translate = (0, 0, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+}
