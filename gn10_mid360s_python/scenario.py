@@ -52,7 +52,7 @@ class FrankaRmpFlowExampleScript:
                 min_range_m=0.2,
                 max_range_m=200.0,
                 scan_period_s=0.1,
-                output_frame="WORLD",
+                output_frame="SENSOR",
             )
         )
         self._mid360_ros2_bridge: Mid360Ros2Bridge = Mid360Ros2Bridge(
@@ -168,6 +168,13 @@ class FrankaRmpFlowExampleScript:
             return
 
         sensor = self._mid360_sensor
+        translation, rotation = sensor.get_world_pose()
+        self._mid360_ros2_bridge.publish_transform(
+            translation=translation,
+            rotation_xyzw=rotation,
+            child_frame_id=self._mid360_sensor_builder.get_frame_id(),
+            parent_frame_id="world",
+        )
         reading = sensor.get_sensor_reading()
         self._mid360_ros2_bridge.publish_from_reading(
             reading,

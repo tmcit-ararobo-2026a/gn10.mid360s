@@ -30,6 +30,8 @@ class Mid360Ros2Bridge:
         self._pointcloud2_type: Any = None
         self._pointfield_type: Any = None
         self._header_type: Any = None
+        self._transform_stamped_type: Any = None
+        self._tf_broadcaster: Any = None
         self._owns_context = False
         self._ready = False
 
@@ -46,8 +48,10 @@ class Mid360Ros2Bridge:
             import rclpy
             from rclpy.node import Node
             from rclpy.qos import QoSProfile, ReliabilityPolicy
+            from geometry_msgs.msg import TransformStamped
             from sensor_msgs.msg import PointCloud2, PointField
             from std_msgs.msg import Header
+            from tf2_ros import TransformBroadcaster
         except ImportError:
             return False
 
@@ -55,14 +59,16 @@ class Mid360Ros2Bridge:
         self._pointcloud2_type = PointCloud2
         self._pointfield_type = PointField
         self._header_type = Header
+        self._transform_stamped_type = TransformStamped
 
         if not rclpy.ok():
             rclpy.init(args=None)
             self._owns_context = True
 
         self._node = Node(self._config.node_name)
+        self._tf_broadcaster = TransformBroadcaster(self._node)
         qos_profile = QoSProfile(depth=self._config.queue_size)
-        qos_profile.reliability = ReliabilityPolicy.BEST_EFFORT
+        qos_profile.reliability = ReliabilityPolicy.RELIABLE
         self._publisher = self._node.create_publisher(PointCloud2, self._config.topic_name, qos_profile)
         self._ready = True
         return True
@@ -78,6 +84,7 @@ class Mid360Ros2Bridge:
         finally:
             self._node = None
             self._publisher = None
+            self._tf_broadcaster = None
             self._ready = False
             if self._owns_context and self._rclpy is not None and self._rclpy.ok():
                 self._rclpy.shutdown()
@@ -156,6 +163,32 @@ class Mid360Ros2Bridge:
         valid_mask = np.isfinite(depths) & (depths < float(max_range_m) - 1e-5)
         valid_points = hit_positions[valid_mask, :3]
         return self.publish_points(valid_points, frame_id=frame_id)
+
+    def publish_transform(
+        self,
+        translation: Sequence[float],
+        rotation_xyzw: Sequence[float],
+        child_frame_id: str,
+        parent_frame_id: str = "world",
+    ) -> bool:
+        """Publish a TF transform so RViz can resolve the sensor frame."""
+        if not self._ready or self._tf_broadcaster is None:
+            return False
+
+        message = self._transform_stamped_type()
+        message.header = self._header_type()
+        message.header.stamp = self._node.get_clock().now().to_msg()
+        message.header.frame_id = parent_frame_id
+        message.child_frame_id = child_frame_id
+        message.transform.translation.x = float(translation[0])
+        message.transform.translation.y = float(translation[1])
+        message.transform.translation.z = float(translation[2])
+        message.transform.rotation.x = float(rotation_xyzw[0])
+        message.transform.rotation.y = float(rotation_xyzw[1])
+        message.transform.rotation.z = float(rotation_xyzw[2])
+        message.transform.rotation.w = float(rotation_xyzw[3])
+        self._tf_broadcaster.sendTransform(message)
+        return True
 
     def _make_field(self, name: str, offset: int) -> Any:
         return self._pointfield_type(name=name, offset=offset, datatype=self._pointfield_type.FLOAT32, count=1)

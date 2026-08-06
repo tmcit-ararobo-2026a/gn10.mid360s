@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Sequence
 
 import omni.usd
-from pxr import UsdGeom
+from pxr import Gf, Usd, UsdGeom
 
 from .pattern_loader import Mid360Pattern, load_mid360_pattern
 
@@ -20,7 +20,7 @@ class Mid360SensorConfig:
     min_range_m: float = 0.2
     max_range_m: float = 200.0
     scan_period_s: float = 0.1
-    output_frame: str = "WORLD"
+    output_frame: str = "SENSOR"
 
 
 class Mid360RaycastSensor:
@@ -79,7 +79,7 @@ class Mid360RaycastSensor:
             authored_sensor = Raycast.create(self._config.sensor_prim_path, **kwargs)
 
         self._sensor = RaycastSensor(authored_sensor)
-        return self._sensor
+        return self
 
     def get_frame_id(self) -> str:
         """Return a stable ROS frame id for the sensor."""
@@ -88,6 +88,33 @@ class Mid360RaycastSensor:
     def get_max_range_m(self) -> float:
         """Return the configured maximum sensing range."""
         return self._config.max_range_m
+
+    def get_world_pose(self) -> tuple[list[float], list[float]]:
+        """Return the sensor prim pose in world coordinates as translation and quaternion."""
+        stage = omni.usd.get_context().get_stage()
+        if stage is None:
+            raise RuntimeError("No USD stage is open. Cannot read Mid-360 pose.")
+
+        prim = stage.GetPrimAtPath(self._config.sensor_prim_path)
+        if not prim.IsValid():
+            raise RuntimeError(f"Mid-360 sensor prim not found: {self._config.sensor_prim_path}")
+
+        xform = UsdGeom.Xformable(prim)
+        world_matrix = xform.ComputeLocalToWorldTransform(Usd.TimeCode.Default())
+        translation = world_matrix.ExtractTranslation()
+
+        try:
+            rotation_quat = world_matrix.ExtractRotationQuat()
+            quat = [
+                float(rotation_quat.GetImaginary()[0]),
+                float(rotation_quat.GetImaginary()[1]),
+                float(rotation_quat.GetImaginary()[2]),
+                float(rotation_quat.GetReal()),
+            ]
+        except Exception:
+            quat = [0.0, 0.0, 0.0, 1.0]
+
+        return [float(translation[0]), float(translation[1]), float(translation[2])], quat
 
     def _ensure_parent_xform(self, stage: object) -> None:
         parent_path = self._config.sensor_prim_path.rsplit("/", 1)[0]
