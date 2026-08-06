@@ -171,8 +171,8 @@ class FrankaRmpFlowExampleScript:
         reading = sensor.get_sensor_reading()
         self._mid360_ros2_bridge.publish_from_reading(
             reading,
-            max_range_m=sensor.get_max_range_m(),
-            frame_id=sensor.get_frame_id(),
+            max_range_m=self._mid360_sensor_builder.get_max_range_m(),
+            frame_id=self._mid360_sensor_builder.get_frame_id(),
         )
 
     """
