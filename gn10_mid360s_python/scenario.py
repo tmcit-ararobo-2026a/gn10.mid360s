@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import numpy as np
+from typing import Any
 from isaacsim.core.api.objects import DynamicCuboid, FixedCuboid, GroundPlane
 from isaacsim.core.prims import SingleArticulation, SingleXFormPrim
 from isaacsim.core.utils import distance_metrics
@@ -30,6 +31,7 @@ from isaacsim.robot_motion.motion_generation.interface_config_loader import load
 from isaacsim.storage.native import get_assets_root_path
 
 from .mid360_sensor import Mid360RaycastSensor, Mid360SensorConfig
+from .ros2_bridge import Mid360Ros2Bridge, PointCloud2PublisherConfig
 
 
 class FrankaRmpFlowExampleScript:
@@ -42,8 +44,8 @@ class FrankaRmpFlowExampleScript:
         self._articulation = None
         self._target = None
 
-        self._mid360_sensor = None
-        self._mid360_sensor_builder = Mid360RaycastSensor(
+        self._mid360_sensor: Any | None = None
+        self._mid360_sensor_builder: Mid360RaycastSensor = Mid360RaycastSensor(
             Mid360SensorConfig(
                 sensor_prim_path="/World/Sensors/Mid360S",
                 translation=(0.0, 0.0, 1.0),
@@ -51,6 +53,14 @@ class FrankaRmpFlowExampleScript:
                 max_range_m=200.0,
                 scan_period_s=0.1,
                 output_frame="WORLD",
+            )
+        )
+        self._mid360_ros2_bridge: Mid360Ros2Bridge = Mid360Ros2Bridge(
+            PointCloud2PublisherConfig(
+                topic_name="/mid360/points",
+                frame_id="mid360",
+                node_name="gn10_mid360s_pointcloud_publisher",
+                queue_size=10,
             )
         )
 
@@ -117,6 +127,8 @@ class FrankaRmpFlowExampleScript:
 
         # Step 2-3: load Mid-360 pattern and create a Physics Raycast Sensor.
         self._mid360_sensor = self._mid360_sensor_builder.create()
+        if not self._mid360_ros2_bridge.initialize():
+            print("ROS2 is not available; Mid-360 PointCloud2 publishing is disabled.")
 
         # Loading RMPflow can be done quickly for supported robots
         rmp_config = load_supported_motion_policy_config("Franka", "RMPflow")
@@ -145,6 +157,23 @@ class FrankaRmpFlowExampleScript:
         """
         # Start the script over by recreating the generator.
         self._script_generator = self.my_script()
+
+    def cleanup(self) -> None:
+        """Release ROS2 resources owned by this scenario."""
+        self._mid360_ros2_bridge.shutdown()
+
+    def update_ros2(self) -> None:
+        """Publish the current Mid-360 point cloud if the sensor is active."""
+        if self._mid360_sensor is None:
+            return
+
+        sensor = self._mid360_sensor
+        reading = sensor.get_sensor_reading()
+        self._mid360_ros2_bridge.publish_from_reading(
+            reading,
+            max_range_m=sensor.get_max_range_m(),
+            frame_id=sensor.get_frame_id(),
+        )
 
     """
     The following two functions demonstrate the mechanics of running code in a script-like way

@@ -77,6 +77,7 @@ class UIBuilder:
         Args:
             step: Size of physics step.
         """
+        self._scenario.update_ros2()
 
     def on_stage_event(self, event: object) -> None:
         """Callback for Stage Events.
@@ -94,6 +95,7 @@ class UIBuilder:
         Perform any necessary cleanup such as removing active callback functions
         Buttons imported from isaacsim.gui.components.element_wrappers implement a cleanup function that should be called.
         """
+        self._scenario.cleanup()
         for ui_elem in self.wrapped_ui_elements:
             ui_elem.cleanup()
 

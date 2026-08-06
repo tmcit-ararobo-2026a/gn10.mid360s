@@ -42,6 +42,12 @@ class Mid360RaycastSensor:
     def sensor(self) -> object:
         return self._sensor
 
+    def get_sensor_reading(self) -> object | None:
+        """Return the latest runtime reading if the sensor has been created."""
+        if self._sensor is None:
+            return None
+        return self._sensor.get_sensor_reading()
+
     def create(self) -> object:
         """Create the USD raycast sensor prim and runtime wrapper."""
         stage = omni.usd.get_context().get_stage()
@@ -74,6 +80,14 @@ class Mid360RaycastSensor:
 
         self._sensor = RaycastSensor(authored_sensor)
         return self._sensor
+
+    def get_frame_id(self) -> str:
+        """Return a stable ROS frame id for the sensor."""
+        return self._config.sensor_prim_path.strip("/").replace("/", "_")
+
+    def get_max_range_m(self) -> float:
+        """Return the configured maximum sensing range."""
+        return self._config.max_range_m
 
     def _ensure_parent_xform(self, stage: object) -> None:
         parent_path = self._config.sensor_prim_path.rsplit("/", 1)[0]
