@@ -76,7 +76,7 @@ The USD model represents the physical location of the sensor, while the raycast 
 4. Publish PointCloud2 through ROS2.
 5. Add GUI support.
 6. Compatible Mid-360S.
-6. Implement optional noise models.
+7. Implement optional noise models.
 
 ## Pattern Loader
 
