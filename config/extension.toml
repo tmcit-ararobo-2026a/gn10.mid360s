@@ -1,0 +1,21 @@
+[package]
+version = "1.0.1"
+category = "Simulation"
+title = "gn10.mid360s"
+description = "gn10.mid360s"
+authors = ["NVIDIA"]
+repository = ""
+keywords = []
+changelog = "docs/CHANGELOG.md"
+readme = "docs/Overview.md"
+preview_image = "data/preview.png"
+icon = "data/icon.png"
+writeTarget.kit = true
+
+[dependencies]
+"isaacsim.core.api" = {}
+"isaacsim.gui.components" = {}
+"omni.kit.uiapp" = {}
+
+[[python.module]]
+name = "gn10_mid360s_python"
