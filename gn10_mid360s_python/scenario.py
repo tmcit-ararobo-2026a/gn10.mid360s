@@ -29,6 +29,8 @@ from isaacsim.robot_motion.motion_generation import ArticulationMotionPolicy, Rm
 from isaacsim.robot_motion.motion_generation.interface_config_loader import load_supported_motion_policy_config
 from isaacsim.storage.native import get_assets_root_path
 
+from .mid360_sensor import Mid360RaycastSensor, Mid360SensorConfig
+
 
 class FrankaRmpFlowExampleScript:
     """Script a Franka robot to move to a target using RMPFlow."""
@@ -39,6 +41,18 @@ class FrankaRmpFlowExampleScript:
 
         self._articulation = None
         self._target = None
+
+        self._mid360_sensor = None
+        self._mid360_sensor_builder = Mid360RaycastSensor(
+            Mid360SensorConfig(
+                sensor_prim_path="/World/Sensors/Mid360S",
+                translation=(0.0, 0.0, 1.0),
+                min_range_m=0.2,
+                max_range_m=200.0,
+                scan_period_s=0.1,
+                output_frame="WORLD",
+            )
+        )
 
         self._script_generator = None
 
@@ -100,6 +114,9 @@ class FrankaRmpFlowExampleScript:
         """This function is called after assets have been loaded from ui_builder._setup_scenario()."""
         # Set a camera view that looks good
         set_camera_view(eye=[2, 0.8, 1], target=[0, 0, 0], camera_prim_path="/OmniverseKit_Persp")
+
+        # Step 2-3: load Mid-360 pattern and create a Physics Raycast Sensor.
+        self._mid360_sensor = self._mid360_sensor_builder.create()
 
         # Loading RMPflow can be done quickly for supported robots
         rmp_config = load_supported_motion_policy_config("Franka", "RMPflow")
