@@ -23,18 +23,12 @@ Pattern Loader (.npy)
         │
         ▼
 Physics Raycast Sensor
-        │
-        ▼
-Point Cloud Generation
-        │
-        ▼
-ROS2 Publisher
 ```
 
 ## Directory Structure
 
 ```
-isaac-sim-mid360/
+gn10.mid360/
 ├── config/
 │   └── extension.toml
 │
@@ -44,13 +38,10 @@ isaac-sim-mid360/
 │   └── usd/
 │       └── mid360.usd
 │
-├── python/
-│   └── isaacsim_mid360/
-│       ├── extension.py
-│       ├── sensor.py
-│       ├── pattern_loader.py
-│       ├── ros2_bridge.py
-│       └── visualization.py
+├── gn10_mid360s_python/
+│   ├── extension.py
+│   ├── sensor.py
+│   └── pattern_loader.py
 │
 ├── examples/
 │
@@ -73,8 +64,6 @@ The USD model represents the physical location of the sensor, while the raycast 
 1. Create the extension by [CLI Extension Templates](https://docs.isaacsim.omniverse.nvidia.com/6.0.1/utilities/cli_extension_templates.html#isaac-sim-cli-extension-templates)
 2. Load the Mid-360 scan pattern.
 3. Create a Physics Raycast Sensor.
-4. Publish PointCloud2 through ROS2.
-5. Add GUI support.
 6. Compatible Mid-360S.
 7. Implement optional noise models.
 
