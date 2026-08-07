@@ -1,62 +1,73 @@
-# SPDX-FileCopyrightText: Copyright (c) 2022-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2026 NVIDIA CORPORATION & AFFILIATES.
 # SPDX-License-Identifier: Apache-2.0
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
-"""Extension template for scripting workflow."""
+"""Isaac Sim extension for the Livox Mid-360S LiDAR."""
+
+from __future__ import annotations
 
 import gc
 
-import omni
-from isaacsim.gui.components.menu import MenuItemDescription
-from omni.kit.menu.utils import add_menu_items, remove_menu_items
+import omni.ext
+import omni.usd
 
-from .global_variables import EXTENSION_TITLE
+from .sensor import Mid360RaycastSensor, Mid360SensorConfig
 
 
 class Extension(omni.ext.IExt):
-    """Extension class for the scripting workflow template."""
+    """Isaac Sim Mid-360S LiDAR extension."""
 
     def on_startup(self, ext_id: str) -> None:
-        """Initialize extension and UI elements.
+        """Initialize the Mid-360S extension."""
 
-        Args:
-            ext_id: Extension identifier provided by the extension manager.
-        """
-        self.ext_id = ext_id
+        self._ext_id = ext_id
+        self._sensor: Mid360RaycastSensor | None = None
 
-        action_registry = omni.kit.actions.core.get_action_registry()
-        action_registry.register_action(
-            ext_id,
-            f"Create Mid-360S",
-            self._menu_callback,
+        # Stageイベントを監視するためのサブスクライバ
+        usd_context = omni.usd.get_context()
+        self._stage_event_sub = usd_context.get_stage_event_stream().create_subscription_to_pop(
+            self._on_stage_event, name="Mid360S Stage Event"
         )
-        self._menu_items = [
-            MenuItemDescription(name=EXTENSION_TITLE, onclick_action=(ext_id, f"Create Mid-360S"))
-        ]
 
-        add_menu_items(self._menu_items, "Create/Sensors")
+        # すでにステージが開かれている場合（拡張機能のホットリロード時など）のフォールバック
+        if usd_context.get_stage():
+            self._create_sensor()
+
+    def _on_stage_event(self, event: omni.usd.StageEvent) -> None:
+        """USD Stage のイベントハンドラ"""
+        # 新しいステージが開かれた（または作成された）タイミングでセンサーを生成
+        if event.type == int(omni.usd.StageEventType.OPENED):
+            self._create_sensor()
+
+    def _create_sensor(self) -> None:
+        """USD Stage 上に Mid-360S センサーを生成"""
+        if self._sensor is not None:
+            return
+
+        self._sensor = Mid360RaycastSensor(
+            Mid360SensorConfig(
+                sensor_prim_path="/World/Sensors/Mid360S",
+                translation=(0.0, 0.0, 0.0),
+                min_range_m=0.2,
+                max_range_m=200.0,
+                scan_period_s=0.1,
+                points_per_second=200_000,
+                output_frame="SENSOR",
+            )
+        )
+
+        self._sensor.create()
+
+        print(
+            "[Mid360S] Sensor created at "
+            f"{self._sensor.sensor_prim_path}"
+        )
 
     def on_shutdown(self) -> None:
-        """Clean up resources on extension shutdown."""
-        remove_menu_items(self._menu_items, "Create/Sensors")
+        """Shutdown the Mid-360S extension."""
 
-        action_registry = omni.kit.actions.core.get_action_registry()
-        action_registry.deregister_action(self.ext_id, f"Create Mid-360S")
+        self._stage_event_sub = None
+        self._sensor = None
 
         gc.collect()
-        
-    def _menu_callback(self) -> None:
-        """Callback function for menu item click event."""
-        # Add Mid-360S
-        print(f"{EXTENSION_TITLE} Adding Mid-360S.")
+
+        print("[Mid360S] Extension shutdown.")
