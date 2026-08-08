@@ -1,5 +1,5 @@
 [package]
-version = "1.0.1"
+version = "0.1.0"
 category = "Simulation"
 title = "gn10.mid360s"
 description = "This is the Extension Simulate Livox Mid-360S in Isaac Sim. The LiDAR output published by a ROS2 PointCloud topic."
