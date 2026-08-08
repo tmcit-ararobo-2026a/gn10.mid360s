@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.0] - 2026-08-09
+
+### Fixed
+- Fixed the issue Prim path of the Mid360S sensor being hardcoded to `/World/Sensors/Mid360S`.
+- Moved main process from `Extension` to `Mid360PointCloud` node.
+
 ## [0.2.0] - 2026-08-08
 
 ### Added
