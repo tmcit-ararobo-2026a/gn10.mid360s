@@ -39,9 +39,9 @@ class Extension(omni.ext.IExt):
         self._sensor_prim = None
         self._stage = None
         
-        self.device = "cuda:0"  # デバイスを指定（例: "cuda:0"）
+        self.device = "cuda:0"
 
-        # Create/Sensors メニューに「Mid-360S LiDAR」を追加
+        # Menu items
         self._menu_items = [
             MenuItemDescription(
                 name="Mid-360S LiDAR",
@@ -73,7 +73,7 @@ class Extension(omni.ext.IExt):
     def on_shutdown(self) -> None:
         """Shutdown the Mid-360S extension and clean up resources."""
 
-        # メニュー項目の削除
+        # Unsubscribe from timeline events
         if hasattr(self, "_menu_items") and self._menu_items:
             omni.kit.menu.utils.remove_menu_items(self._menu_items, "Create/Sensors")
             self._menu_items = []
