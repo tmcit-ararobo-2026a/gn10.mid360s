@@ -13,12 +13,26 @@ icon = "data/icon.png"
 writeTarget.kit = true
 
 [dependencies]
-"isaacsim.core.api" = {}
+"isaacsim.core.experimental.utils" = {}
+"isaacsim.core.nodes" = {}
+"isaacsim.core.rendering_manager" = {}
+"isaacsim.core.simulation_manager" = {}
+"isaacsim.examples.browser" = {}
 "isaacsim.gui.components" = {}
-"omni.kit.uiapp" = {}
-"omni.graph.core" = {}
-"omni.graph.tools" = {}
 "isaacsim.ros2.nodes" = {}
+"isaacsim.storage.native" = {}
+"omni.graph" = {}
+"omni.graph.tools" = {}
+"omni.replicator.core" = {}
+"omni.timeline" = {}
+"omni.ui" = {}
 
 [[python.module]]
 name = "gn10_mid360s_python"
+
+[fswatcher.patterns]
+include = ["*.ogn", "*.py", "*.toml"]
+exclude = ["Ogn*Database.py"]
+
+[fswatcher.paths]
+exclude = ["*/bin", "*/__pycache__/*", "*/.git/*"]

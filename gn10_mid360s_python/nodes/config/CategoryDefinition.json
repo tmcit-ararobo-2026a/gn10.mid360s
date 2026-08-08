@@ -1,0 +1,6 @@
+{
+    "categoryDefinitions": {
+        "$description": "Categories for gn10.mid360s Python nodes",
+        "gn10.mid360s": "Nodes provided by gn10.mid360s"
+    }
+}

@@ -21,8 +21,8 @@ import warp as wp
 import numpy as np
 
 # for Mid-360
-from .OmniPerception.LidarSensor.LidarSensor.lidar_sensor import LidarSensor
-from .OmniPerception.LidarSensor.LidarSensor.sensor_config.lidar_sensor_config import LidarConfig, LidarType
+from ..OmniPerception.LidarSensor.LidarSensor.lidar_sensor import LidarSensor
+from ..OmniPerception.LidarSensor.LidarSensor.sensor_config.lidar_sensor_config import LidarConfig, LidarType
 # for Warp Mesh
 from .warp_manager import WarpUSDManager
 
