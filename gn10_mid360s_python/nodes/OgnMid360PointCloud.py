@@ -4,7 +4,7 @@
 """OmniGraph node for the simulated Livox Mid-360S point cloud."""
 
 import numpy as np
-
+import omni.graph.core as og
 from ..impl import global_variables
 
 
@@ -45,6 +45,7 @@ class OgnMid360PointCloud:
                 )
                 for point in points
             ]
+            db.outputs.execOut = og.ExecutionAttributeState.ENABLED
 
             return True
 
@@ -52,5 +53,4 @@ class OgnMid360PointCloud:
             print(f"[Mid360PointCloud] Failed to output point cloud: {e}")
 
             db.outputs.points = []
-
             return False
