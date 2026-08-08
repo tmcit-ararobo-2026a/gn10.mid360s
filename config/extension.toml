@@ -2,9 +2,9 @@
 version = "0.1.0"
 category = "Simulation"
 title = "gn10.mid360s"
-description = "This is the Extension Simulate Livox Mid-360S in Isaac Sim. The LiDAR output published by a ROS2 PointCloud topic."
+description = "Livox Mid-360S"
 authors = ["Gento Aiba"]
-repository = ""
+repository = "https://github.com/tmcit-ararobo-2026a/gn10.mid360s"
 keywords = ["gn10", "ROS2", "Mid-360S", "Mid-360", "Livox", "Sensors", "LiDAR"]
 changelog = "docs/CHANGELOG.md"
 readme = "docs/Overview.md"
