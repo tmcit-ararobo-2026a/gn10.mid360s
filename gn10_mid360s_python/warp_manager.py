@@ -4,7 +4,7 @@ import numpy as np
 import omni.timeline
 
 class WarpUSDManager:
-    """USD上の全Meshを結合し、Warp Meshの生成およびリアルタイムトランスフォーム追従(refit)を管理するクラス"""
+    """Utility class to manage Warp mesh representation of USD Meshes in the stage."""
 
     def __init__(self, stage: Usd.Stage, device: str = "cuda:0"):
         self.stage = stage
@@ -64,7 +64,7 @@ class WarpUSDManager:
             self.mesh_prims.append((mesh_geom, pts_homo))
 
         if not all_vertices:
-            raise RuntimeError("USD ステージ上に有効な Mesh ジオメトリが見つかりませんでした。")
+            raise RuntimeError("USD stage has no valid mesh geometries.")
 
         merged_vertices = np.vstack(all_vertices).astype(np.float32)
         merged_indices = np.concatenate(all_indices).astype(np.int32)
