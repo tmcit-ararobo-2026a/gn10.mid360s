@@ -1,0 +1,3 @@
+[submodule "gn10_mid360s_python/OmniPerception"]
+	path = gn10_mid360s_python/OmniPerception
+	url = https://github.com/tmcit-ararobo-2026a/OmniPerception
