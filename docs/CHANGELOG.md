@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.0] - 2026-08-09
+
+### Fixed
+- Ghosting artifacts remain in the point cloud.
+
 ## [0.3.0] - 2026-08-09
 
 ### Fixed
