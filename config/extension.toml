@@ -16,6 +16,9 @@ writeTarget.kit = true
 "isaacsim.core.api" = {}
 "isaacsim.gui.components" = {}
 "omni.kit.uiapp" = {}
+"omni.graph.core" = {}
+"omni.graph.tools" = {}
+"isaacsim.ros2.nodes" = {}
 
 [[python.module]]
 name = "gn10_mid360s_python"
