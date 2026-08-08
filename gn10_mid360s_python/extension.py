@@ -82,11 +82,10 @@ class Extension(omni.ext.IExt):
         print("[Mid360S] Extension shutdown.")
 
     def _create_sensor(self) -> None:
-        """USD Stage 上に Mid-360S センサーを生成"""
+        """Create a Mid-360S LiDAR sensor in the USD stage."""
         usd_context = omni.usd.get_context()
         self._stage = usd_context.get_stage()
 
-        # ステージが開かれていない場合は作成しない
         if not self._stage:
             print("[Mid360S] Error: Cannot create sensor because no USD stage is open.")
             return
@@ -95,7 +94,7 @@ class Extension(omni.ext.IExt):
             print("[Mid360S] Sensor already exists!!")
             return
 
-        # パスの重複を防ぐため、空いている Prim パスを取得 (/World/Sensors/Mid360S, /World/Sensors/Mid360S_01, ...)
+        # Create a new Xform prim for the sensor in the USD stage
         base_prim_path = "/World/Sensors/Mid360S"
         sensor_prim_path = omni.usd.get_stage_next_free_path(self._stage, base_prim_path, False)
 
@@ -112,10 +111,6 @@ class Extension(omni.ext.IExt):
         if self._sensor is None:
             return
 
-        # ------------------------------------------------------------
-        # Get world transform
-        # ------------------------------------------------------------
-
         xformable = UsdGeom.Xformable(
             self._sensor_prim
         )
@@ -124,26 +119,8 @@ class Extension(omni.ext.IExt):
             Usd.TimeCode.Default()
         )
 
-        # ------------------------------------------------------------
-        # Translation
-        # ------------------------------------------------------------
-
         translation = world_transform.ExtractTranslation()
-
-        # ------------------------------------------------------------
-        # Rotation
-        # ------------------------------------------------------------
-
         rotation = world_transform.ExtractRotationQuat()
-
-        # Gf.Quatd:
-        #
-        # real = w
-        # imaginary = (x, y, z)
-        #
-        # OmniPerception expects:
-        #
-        # [x, y, z, w]
 
         imag = rotation.GetImaginary()
         real = rotation.GetReal()
@@ -174,10 +151,6 @@ class Extension(omni.ext.IExt):
             dtype=torch.float32,
             device=self.device,
         )
-
-        # ------------------------------------------------------------
-        # Update OmniPerception tensors
-        # ------------------------------------------------------------
 
         self._sensor.lidar_positions_tensor.copy_(
             position
