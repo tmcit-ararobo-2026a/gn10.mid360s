@@ -5,7 +5,7 @@
 
 import numpy as np
 
-from .. import global_variables
+from ..impl import global_variables
 
 
 class OgnMid360PointCloud:
