@@ -1,5 +1,5 @@
 [package]
-version = "0.1.0"
+version = "0.2.0"
 category = "Simulation"
 title = "gn10.mid360s"
 description = "Livox Mid-360S"
