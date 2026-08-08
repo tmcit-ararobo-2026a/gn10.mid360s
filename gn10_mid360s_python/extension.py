@@ -14,6 +14,7 @@ from omni.kit.menu.utils import MenuItemDescription
 import omni.usd
 import omni.physics.core
 import omni.timeline
+from pxr import Usd, UsdGeom
 import torch
 import warp as wp
 import numpy as np
@@ -36,6 +37,7 @@ class Extension(omni.ext.IExt):
         self._warp_manager = None
         self._sensor = None
         self._sensor_prim = None
+        self._stage = None
         
         self.device = "cuda:0"  # デバイスを指定（例: "cuda:0"）
 
@@ -68,22 +70,150 @@ class Extension(omni.ext.IExt):
             observer_name="template_extension._on_timeline_stop",
         )
 
+    def on_shutdown(self) -> None:
+        """Shutdown the Mid-360S extension and clean up resources."""
+
+        # メニュー項目の削除
+        if hasattr(self, "_menu_items") and self._menu_items:
+            omni.kit.menu.utils.remove_menu_items(self._menu_items, "Create/Sensors")
+            self._menu_items = []
+        gc.collect()
+
+        print("[Mid360S] Extension shutdown.")
+
     def _create_sensor(self) -> None:
         """USD Stage 上に Mid-360S センサーを生成"""
         usd_context = omni.usd.get_context()
-        stage = usd_context.get_stage()
+        self._stage = usd_context.get_stage()
 
         # ステージが開かれていない場合は作成しない
-        if not stage:
+        if not self._stage:
             print("[Mid360S] Error: Cannot create sensor because no USD stage is open.")
+            return
+
+        if self._sensor is not None:
+            print("[Mid360S] Sensor already exists!!")
             return
 
         # パスの重複を防ぐため、空いている Prim パスを取得 (/World/Sensors/Mid360S, /World/Sensors/Mid360S_01, ...)
         base_prim_path = "/World/Sensors/Mid360S"
-        sensor_prim_path = omni.usd.get_stage_next_free_path(stage, base_prim_path, False)
+        sensor_prim_path = omni.usd.get_stage_next_free_path(self._stage, base_prim_path, False)
 
-        self._warp_manager = WarpUSDManager(stage, device=self.device)
-        # LidarSensor の構築
+        self._sensor_prim = self._stage.DefinePrim(sensor_prim_path, "Xform")
+
+        print(f"[Mid360S] Sensor prim created at {sensor_prim_path}")
+
+    def _update_sensor_pose(self) -> None:
+        """Read the sensor pose from the USD stage."""
+
+        if self._sensor_prim is None:
+            return
+
+        if self._sensor is None:
+            return
+
+        # ------------------------------------------------------------
+        # Get world transform
+        # ------------------------------------------------------------
+
+        xformable = UsdGeom.Xformable(
+            self._sensor_prim
+        )
+
+        world_transform = xformable.ComputeLocalToWorldTransform(
+            Usd.TimeCode.Default()
+        )
+
+        # ------------------------------------------------------------
+        # Translation
+        # ------------------------------------------------------------
+
+        translation = world_transform.ExtractTranslation()
+
+        # ------------------------------------------------------------
+        # Rotation
+        # ------------------------------------------------------------
+
+        rotation = world_transform.ExtractRotationQuat()
+
+        # Gf.Quatd:
+        #
+        # real = w
+        # imaginary = (x, y, z)
+        #
+        # OmniPerception expects:
+        #
+        # [x, y, z, w]
+
+        imag = rotation.GetImaginary()
+        real = rotation.GetReal()
+
+        position = torch.tensor(
+            [
+                [
+                    float(translation[0]),
+                    float(translation[1]),
+                    float(translation[2]),
+                ]
+            ],
+            dtype=torch.float32,
+            device=self.device,
+        )
+
+        quaternion = torch.tensor(
+            [
+                [
+                    [
+                        float(imag[0]),
+                        float(imag[1]),
+                        float(imag[2]),
+                        float(real),
+                    ]
+                ]
+            ],
+            dtype=torch.float32,
+            device=self.device,
+        )
+
+        # ------------------------------------------------------------
+        # Update OmniPerception tensors
+        # ------------------------------------------------------------
+
+        self._sensor.lidar_positions_tensor.copy_(
+            position
+        )
+
+        self._sensor.lidar_quat_tensor.copy_(
+            quaternion
+        )
+
+    def _on_timeline_play(self, event: object) -> None:
+        """Timeline play event callback.
+
+        Args:
+            event: The timeline play event.
+        """
+        print("[Mid360S] Timeline play event received.")
+        if self._stage is None:
+            usd_context = omni.usd.get_context()
+            self._stage = usd_context.get_stage()
+        if self._sensor_prim is None:
+            self._sensor_prim = self._stage.GetPrimAtPath("/World/Sensors/Mid360S")
+
+        # Physics step subscription
+        if not self._physics_subscription:
+            self._physics_subscription = self._physics_simulation_interface.subscribe_physics_on_step_events(
+                pre_step=False, order=0, on_update=self._on_physics_step
+            )
+        
+        if self._warp_manager is not None:
+            print("[Mid360S] WarpUSDManager already exists!!")
+            return
+
+        # WarpUSDManager
+        self._warp_manager = WarpUSDManager(self._stage, device=self.device)
+
+        # LidarSensor
         mesh_ids_array = wp.array([self._warp_manager.wp_mesh.id], dtype=wp.uint64, device=self.device)
         sensor_pos = torch.tensor([[1.0, 0.0, 0.5]], device=self.device)
         sensor_quat = torch.tensor([[[0.0, 0.0, 0.0, 1.0]]], device=self.device)
@@ -95,14 +225,18 @@ class Extension(omni.ext.IExt):
             "sensor_quat_tensor": sensor_quat,
         }
 
-        # Mid-360S センサーの設定
+        if self._sensor is not None:
+            print("[Mid360S] Sensor already exists!!")
+            return
+
+        # Mid-360S configuration
         lidar_config = LidarConfig(
             sensor_type=LidarType.MID360,
             max_range=30.0,
             enable_sensor_noise=False
         )
 
-        # Mid-360S センサーを生成
+        # Mid-360S sensor creation
         self._sensor = LidarSensor(
             env=env_cfg,
             env_cfg={},
@@ -111,31 +245,7 @@ class Extension(omni.ext.IExt):
             device=self.device
         )
 
-        print(f"[Mid360S] Sensor created at {sensor_prim_path}")
-
-    def on_shutdown(self) -> None:
-        """Shutdown the Mid-360S extension and clean up resources."""
-
-        # メニュー項目の削除
-        if hasattr(self, "_menu_items") and self._menu_items:
-            omni.kit.menu.utils.remove_menu_items(self._menu_items, "Create/Sensors")
-            self._menu_items = []
-
-        gc.collect()
-
-        print("[Mid360S] Extension shutdown.")
-
-    def _on_timeline_play(self, event: object) -> None:
-        """Timeline play event callback.
-
-        Args:
-            event: The timeline play event.
-        """
-        print("[Mid360S] Timeline play event received.")
-        if not self._physics_subscription:
-            self._physics_subscription = self._physics_simulation_interface.subscribe_physics_on_step_events(
-                pre_step=False, order=0, on_update=self._on_physics_step
-            )
+        print(f"[Mid360S] Sensor created with config: {lidar_config}")
 
     def _on_timeline_stop(self, event: object) -> None:
         """Timeline stop event callback.
@@ -145,6 +255,8 @@ class Extension(omni.ext.IExt):
         """
         print("[Mid360S] Timeline stop event received.")
         self._physics_subscription = None
+        self._warp_manager = None
+        self._sensor = None
 
     def _on_physics_step(self, step: object, context: object) -> None:
         """Physics step event callback.
@@ -153,16 +265,22 @@ class Extension(omni.ext.IExt):
             step: The physics step event.
             context: The physics context.
         """
-        if self._warp_manager:
-            self._warp_manager.update_transforms()
-        else:
-            print("[Mid360S] Warning: Warp manager is not initialized.")
+        if self._sensor is None:
+            print("[Mid360S] No sensor available.")
+            return
+        if self._warp_manager is None:
+            print("[Mid360S] No warp manager available.")
+            return
+        if self._sensor_prim is None:
+            print("[Mid360S] No sensor prim available.")
             return
 
-        if self._sensor:
-            points_tensor, _ = self._sensor.update()
-        else:
-            print("[Mid360S] Warning: Lidar sensor is not initialized.")
+        self._update_sensor_pose()
+        self._warp_manager.update_transforms()
+        points_tensor, _ = self._sensor.update()
+
+        if points_tensor is None:
+            print("[Mid360S] No points generated by the sensor.")
             return
 
         pts = points_tensor.detach().cpu().numpy().reshape(-1, 3)
@@ -171,4 +289,6 @@ class Extension(omni.ext.IExt):
         pts_valid = pts[valid_mask]
 
         if pts_valid.size > 0:
-            print(f"[Mid360S] Valid points count: {pts_valid.shape[0]}")
+            print(f"[Mid360S] Valid points:{pts_valid.shape[0]}")
+        else:
+            print("[Mid360S] No valid points generated by the sensor.")
