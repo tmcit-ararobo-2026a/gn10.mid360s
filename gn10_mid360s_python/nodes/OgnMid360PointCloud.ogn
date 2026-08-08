@@ -7,12 +7,12 @@
         "categoryDefinitions": "config/CategoryDefinition.json",
         "categories": "gn10.mid360s",
         "metadata": {
-            "uiName": "Mid360 Point Cloud"
+            "uiName": "Mid360S Point Cloud"
         },
         "inputs": {
             "execIn": {
                 "type": "execution",
-                "description": "Execution input."
+                "description": "Execution input. Mid360S scanning timing."
             }
         },
         "outputs": {
@@ -22,7 +22,7 @@
             },
             "points": {
                 "type": "pointf[3][]",
-                "description": "Mid-360 XYZ point cloud."
+                "description": "Mid-360S XYZ point cloud."
             }
         }
     }
