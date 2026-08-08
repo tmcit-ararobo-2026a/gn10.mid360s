@@ -13,6 +13,13 @@
             "execIn": {
                 "type": "execution",
                 "description": "Execution input. Mid360S scanning timing."
+            },
+            "sensorPrim": {
+                "type": "target",
+                "description": "USD prim reference to the Mid-360S prim",
+                "metadata": {
+                    "uiName": "Mid-360S Prim"
+                }
             }
         },
         "outputs": {
