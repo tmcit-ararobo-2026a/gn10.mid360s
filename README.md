@@ -37,7 +37,9 @@ Example: `/home/user/isaacsim/my_extensions/gn10.mid360s`
 
 ![My Extensions Directory](docs/my_extensions_dir.png)
 
-Then, you can find the gn10.mid360s extension in 
+Then, you can find the gn10.mid360s extension in THIRD PARTY and turn it enabled.
+
+![Extensions](docs/extensions.png)
 
 ## USD file Usage
 

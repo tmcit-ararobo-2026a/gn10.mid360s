@@ -8,7 +8,7 @@ repository = "https://github.com/tmcit-ararobo-2026a/gn10.mid360s"
 keywords = ["gn10", "ROS2", "Mid-360S", "Mid-360", "Livox", "Sensors", "LiDAR", "omniGraph"]
 changelog = "docs/CHANGELOG.md"
 readme = "docs/Overview.md"
-preview_image = "data/preview.png"
+preview_image = "docs/isaacsim_and_rviz2.png"
 icon = "data/icon.png"
 writeTarget.kit = true
 
