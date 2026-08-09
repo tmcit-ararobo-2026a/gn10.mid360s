@@ -1,6 +1,8 @@
 # isaac-sim-mid360s
 Isaac Sim Python Extension for Livox Mid-360S LiDAR.
 
+![Isaac Sim and Rviz2](docs/isaacsim_and_rviz2.png)
+
 ## Requirements
 - Ubuntu 22.04
 - ROS2 Humble
@@ -76,6 +78,8 @@ rviz2
 ```
 
 You can add a PointCloud2 display in rviz2 and set the topic to `/livox/lidar` to visualize the point cloud data from the Mid-360S LiDAR sensor.
+
+![ROS2 Rviz2](docs/ros2_rviz2.png)
 
 ## License
 
