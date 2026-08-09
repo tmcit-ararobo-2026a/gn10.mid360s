@@ -18,5 +18,3 @@
 EXTENSION_TITLE = "gn10.mid360s"
 
 EXTENSION_DESCRIPTION = "gn10.mid360s"
-
-latest_points = None
